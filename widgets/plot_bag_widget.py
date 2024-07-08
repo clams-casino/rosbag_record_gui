@@ -32,7 +32,6 @@ class PlotBagWorker(QObject):
         self._bag_path = bag_path
 
     def run(self):
-        # print("IN worker run")
         self.started.emit()
         fig = plot_bag_freq(self._bag_path)
         self.finished.emit(fig)
@@ -47,7 +46,7 @@ class PlotBagtWidget(QWidget):
 
         self._enabled = False
 
-        self._checkbox = QCheckBox('plot recorded bag')
+        self._checkbox = QCheckBox('Plot bag timestamps and frequency after recording')
         self._display = QLabel()
 
         self._plot_widget = QWidget()
@@ -59,9 +58,6 @@ class PlotBagtWidget(QWidget):
         self._plot_widget.setMinimumHeight(AX_HEIGHT_INCHES * PX_PER_INCH)
         self._plot_widget.setMinimumWidth((1 + FIGURE_WIDTH_INCHES) * PX_PER_INCH)
         self._plot_widget.setMaximumWidth((1 + FIGURE_WIDTH_INCHES) * PX_PER_INCH)
-
-        # self._fig = plt.figure(figsize=(FIGURE_WIDTH_INCHES, AX_HEIGHT_INCHES))
-        # self.updated_plot(self._fig)
 
         self._checkbox.stateChanged.connect(self.toggle_plotting)
 
@@ -83,13 +79,10 @@ class PlotBagtWidget(QWidget):
         self._checkbox.setEnabled(True)
 
     def trigger_plotting(self, bag_path):
-        # print("IN trigger_plotting")
-
         if not self._enabled:
             self._display.setText('')
             self._clear_plot()
             return
-
 
         self._worker = PlotBagWorker(bag_path)
         self._thread = QThread()
@@ -137,22 +130,26 @@ class PlotBagtWidget(QWidget):
 
 def plot_bag_freq(bag_path):
     rospy.loginfo('Started reading bag for plotting')
-
     if not os.path.exists(bag_path):
         if os.path.exists(bag_path + '.active'):
-            rospy.logwarn(f'Cannot plot bag file which is still being written to, waiting for it to finish')
+            rospy.logwarn(
+                f'Cannot plot bag file which is still being written to, waiting for it to finish'
+            )
             tries = 0
             while os.path.exists(bag_path + '.active'):
                 if tries > 10:
-                    raise FileNotFoundError(f'Cannot plot {bag_path} which is still being written to')
+                    raise FileNotFoundError(
+                        f'Cannot plot {bag_path} which is still being written to'
+                    )
                 rospy.sleep(1)
                 tries += 1
         else:
             raise FileNotFoundError(f'Bag file {bag_path} does not exist')
-            
+
     bag = rosbag.Bag(
         bag_path,
-        skip_index=False,  # doesn't really make a difference since we'll have to read index to get the time stamps anyways
+        # doesn't really make a difference since we'll have to read index to get the timestamps anyways
+        skip_index=False,
     )
 
     # not skipping the index allows us to get the time start and end times easily
@@ -161,18 +158,15 @@ def plot_bag_freq(bag_path):
 
     topics_stamps = {}
     for topic, _, t in bag.read_messages(
-        raw=True
-    ):  # reading non-deserialized messages is faster
+        raw=True  # reading non-deserialized messages is faster
+    ):
         if topic not in topics_stamps:
             topics_stamps[topic] = [t.to_sec() - start_time]
         else:
             topics_stamps[topic].append(t.to_sec() - start_time)
 
     bag.close()
-
     rospy.loginfo('Finished reading bag for plotting')
-
-    rospy.loginfo('Started plotting')
 
     fig = plt.figure(
         figsize=(FIGURE_WIDTH_INCHES, AX_HEIGHT_INCHES * len(topics_stamps))
@@ -195,7 +189,7 @@ def plot_bag_freq(bag_path):
             try:
                 freqs = 1 / np.diff(stamps)
                 inf_idx = np.isinf(freqs)
-                axs[i].plot(stamps[-len(freqs):][~inf_idx], freqs[~inf_idx], c='b')
+                axs[i].plot(stamps[-len(freqs) :][~inf_idx], freqs[~inf_idx], c='b')
                 axs[i].set_title(topic)
                 axs[i].set_xlim(0, end_time - start_time)
                 axs[i].set_ylim([0, 2 * np.mean(freqs[~inf_idx])])

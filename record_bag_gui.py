@@ -1,10 +1,12 @@
 import sys
+import signal
+
 import rospy
 
 from backend import GUIBackend
 from widgets import (
     TopicSelectionTreeWidget,
-    RecordButtonWidget,
+    RecordButtonsWidget,
     StatusDisplayWidget,
     SelectBagSaveFolderWidget,
     PlotBagtWidget,
@@ -14,11 +16,19 @@ from widgets import (
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout
 
 
+def sigint_handler(sig, frame):
+    print(
+        '\nPlease close this application from the GUI instead of using Ctrl+C'
+    )
+
+signal.signal(signal.SIGINT, sigint_handler)
+
+
 class RecordBagGUI(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle('Record Bag GUI')
+        self.setWindowTitle('Record Rosbag GUI')
         self.setGeometry(100, 100, 1000, 1000)
 
         # create backend
@@ -30,13 +40,13 @@ class RecordBagGUI(QMainWindow):
 
         self._topic_selection_tree = TopicSelectionTreeWidget()
         self._status_display = StatusDisplayWidget()
-        self._record_button = RecordButtonWidget()
+        self._record_buttons = RecordButtonsWidget()
         self._bag_savedir_selection = SelectBagSaveFolderWidget()
         self._plot_bag = PlotBagtWidget()
 
         buttons_widget = QWidget()
         buttons_layout = QHBoxLayout()
-        buttons_layout.addWidget(self._record_button)
+        buttons_layout.addWidget(self._record_buttons)
         buttons_layout.addWidget(self._bag_savedir_selection)
         buttons_widget.setLayout(buttons_layout)
 
@@ -59,11 +69,12 @@ class RecordBagGUI(QMainWindow):
         self._topic_selection_tree.checked_topic.connect(self._backend.add_topic)
         self._topic_selection_tree.unchecked_topic.connect(self._backend.remove_topic)
 
-        self._record_button.pushed_start_recording.connect(self._backend.start_recording)
-        self._record_button.pushed_stop_recording.connect(self._backend.stop_recording)
+        self._record_buttons.pushed_start_recording.connect(self._backend.start_recording)
+        self._record_buttons.pushed_stop_recording.connect(self._backend.stop_recording)
+        self._record_buttons.pushed_delete_bag.connect(self._backend.delete_bag)
 
-        self._backend.started_recording_signal.connect(self._record_button.started_recording)
-        self._backend.stopped_recording_signal.connect(self._record_button.stopped_recording)
+        self._backend.started_recording_signal.connect(self._record_buttons.started_recording)
+        self._backend.stopped_recording_signal.connect(self._record_buttons.stopped_recording)
         self._backend.started_recording_signal.connect(self._topic_selection_tree.freeze_selections)
         self._backend.stopped_recording_signal.connect(self._topic_selection_tree.unfreeze_selections)
 
@@ -83,11 +94,10 @@ class RecordBagGUI(QMainWindow):
         self._backend.started_recording_signal.connect(self._plot_bag.disable_checkbox)
         self._backend.stopped_recording_signal.connect(self._plot_bag.enable_checkbox)
 
-        self._plot_bag.started_plotting.connect(self._record_button.disable)
-        self._plot_bag.finished_plotting.connect(self._record_button.enable)
+        self._plot_bag.started_plotting.connect(self._record_buttons.disable)
+        self._plot_bag.finished_plotting.connect(self._record_buttons.enable)
 
     def closeEvent(self, event):
-        # print('in closing event!!!')
         self._backend.close()
         rospy.signal_shutdown('Closing GUI')
         event.accept()

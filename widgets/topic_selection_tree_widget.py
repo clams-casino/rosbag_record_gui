@@ -27,7 +27,7 @@ class TopicSelectionTreeWidget(QTreeWidget):
         self._ignore_item_changed = False
 
         self.setColumnCount(2)
-        self.setHeaderLabels(['topics', 'stats'])
+        self.setHeaderLabels(['Topics', 'Stats'])
         self.setColumnWidth(0, 600)
 
         self._mutex = QMutex()
