@@ -1,6 +1,5 @@
 import os
 import datetime
-import time
 import yaml
 
 import subprocess
@@ -14,8 +13,6 @@ import rosgraph
 from .topichandler import TopicHandler
 
 from PyQt5.QtCore import QObject, pyqtSignal, QTimer
-
-
 
 
 def _master_get_topic_types(master):
@@ -49,7 +46,7 @@ class GUIBackend(QObject):
     check_topics_signal = pyqtSignal(list)
 
     started_recording_signal = pyqtSignal()
-    stopped_recording_signal = pyqtSignal(str)
+    stopped_recording_signal = pyqtSignal(dict)
 
     status_message_signal = pyqtSignal(str)
 
@@ -159,6 +156,9 @@ class GUIBackend(QObject):
         command += ['-O', self._bag_path]
         command += list(self._topic_handlers.keys())
 
+        for _, topic_handler in self._topic_handlers.items():
+            topic_handler.start_recording_times()
+
         self._record_bag_process = subprocess.Popen(
             command,
         )
@@ -177,7 +177,14 @@ class GUIBackend(QObject):
         self._record_bag_process.terminate()
         self._record_bag_process.wait()  # wait for the process to really terminate
         self._recording = False
-        self.stopped_recording_signal.emit(self._bag_path)
+
+        topic_times = {}
+        for topic, topic_handler in self._topic_handlers.items():
+            topic_times[topic] = topic_handler.get_times()
+            topic_handler.stop_recording_times()
+
+        self.stopped_recording_signal.emit(topic_times)
+
         self.status_message_signal.emit(f'Finished recording bag to {self._bag_path}')
 
     def set_bag_save_folder(self, folder):

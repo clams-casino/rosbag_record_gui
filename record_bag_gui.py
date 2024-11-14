@@ -9,7 +9,7 @@ from widgets import (
     RecordButtonsWidget,
     StatusDisplayWidget,
     SelectBagSaveFolderWidget,
-    PlotBagtWidget,
+    PlotTopicTimesWidget,
     MenuBar,
 )
 
@@ -42,7 +42,7 @@ class RecordBagGUI(QMainWindow):
         self._status_display = StatusDisplayWidget()
         self._record_buttons = RecordButtonsWidget()
         self._bag_savedir_selection = SelectBagSaveFolderWidget()
-        self._plot_bag = PlotBagtWidget()
+        self._plot_bag = PlotTopicTimesWidget()
 
         buttons_widget = QWidget()
         buttons_layout = QHBoxLayout()

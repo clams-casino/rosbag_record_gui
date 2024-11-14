@@ -9,23 +9,27 @@ class TopicStats:
         if window_size is None:
             # following implementation of rostopic
             # https://github.com/strawlab/ros_comm/blob/master/tools/rostopic/src/rostopic.py#L106
-            self._window_size = 50000
+            self._diff_times_window_size = 50000
         else:
-            self._window_size = window_size
+            self._diff_times_window_size = window_size
 
         self._last_msg_time = None
-        self._diff_times = []
+        self._diff_times_window = []
+        self._times = None
 
     def update(self, time):
         if self._last_msg_time is None:
             self._last_msg_time = time
             return
 
-        self._diff_times.append(time - self._last_msg_time)
-        if len(self._diff_times) > self._window_size:
-            self._diff_times.pop(0)
+        self._diff_times_window.append(time - self._last_msg_time)
+        if len(self._diff_times_window) > self._diff_times_window_size:
+            self._diff_times_window.pop(0)
 
         self._last_msg_time = time
+
+        if self._times is not None:
+            self._times.append(time)
 
     def get_stats(self):
         curr_time = rospy.get_time()
@@ -34,7 +38,7 @@ class TopicStats:
         else:
             time_since_last_msg = curr_time - self._last_msg_time
 
-        if len(self._diff_times) == 0:
+        if len(self._diff_times_window) == 0:
             return {
                 'mean': np.nan,
                 'std': np.nan,
@@ -43,7 +47,7 @@ class TopicStats:
                 'time_since_last_msg': time_since_last_msg,
             }
 
-        diff_times = np.array(self._diff_times)
+        diff_times = np.array(self._diff_times_window)
         return {
             'mean': np.mean(diff_times),
             'std': np.std(diff_times),
@@ -51,6 +55,15 @@ class TopicStats:
             'min': np.min(diff_times),
             'time_since_last_msg': time_since_last_msg,
         }
+
+    def get_times(self):
+        return self._times
+
+    def start_recording_times(self):
+        self._times = []
+
+    def stop_recording_times(self):
+        self._times = None
 
 
 class TopicHandler:
@@ -72,3 +85,12 @@ class TopicHandler:
 
     def get_stats(self):
         return self._stats.get_stats()
+
+    def get_times(self):
+        return self._stats.get_times()
+
+    def start_recording_times(self):
+        self._stats.start_recording_times()
+
+    def stop_recording_times(self):
+        self._stats.stop_recording_times()
