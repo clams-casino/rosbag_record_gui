@@ -162,7 +162,7 @@ class TopicSelectionTreeWidget(QTreeWidget):
                 child_topic = child.text(0)
                 if child_topic in topics_stats:
                     stats_str = ''
-                    stats_str += f'mean freq: {format_num_display(1 / topics_stats[child_topic]["mean"])}'
+                    stats_str += f'mean freq [Hz]: {format_num_display(1 / topics_stats[child_topic]["mean"])}'
                     stats_str += f',    t since last [s]: {format_num_display(topics_stats[child_topic]["time_since_last_msg"])}'
                     stats_str += f',    std: {format_num_display(topics_stats[child_topic]["std"])}'
                     stats_str += f',    max: {format_num_display(topics_stats[child_topic]["max"])}'
