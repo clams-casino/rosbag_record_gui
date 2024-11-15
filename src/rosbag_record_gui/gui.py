@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import sys
 import signal
 
@@ -19,9 +17,8 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHB
 
 
 def sigint_handler(sig, frame):
-    print(
-        '\nPlease close this application from the GUI instead of using Ctrl+C'
-    )
+    print('\nPlease close this application from the GUI instead of using Ctrl+C')
+
 
 signal.signal(signal.SIGINT, sigint_handler)
 
@@ -65,32 +62,58 @@ class RecordBagGUI(QMainWindow):
 
         # connect signals and slots
         self._backend.add_topics_signal.connect(self._topic_selection_tree.add_topics)
-        self._backend.remove_topics_signal.connect(self._topic_selection_tree.remove_topics)
-        self._backend.check_topics_signal.connect(self._topic_selection_tree.check_topics)
+        self._backend.remove_topics_signal.connect(
+            self._topic_selection_tree.remove_topics
+        )
+        self._backend.check_topics_signal.connect(
+            self._topic_selection_tree.check_topics
+        )
 
         self._topic_selection_tree.checked_topic.connect(self._backend.add_topic)
         self._topic_selection_tree.unchecked_topic.connect(self._backend.remove_topic)
 
-        self._record_buttons.pushed_start_recording.connect(self._backend.start_recording)
+        self._record_buttons.pushed_start_recording.connect(
+            self._backend.start_recording
+        )
         self._record_buttons.pushed_stop_recording.connect(self._backend.stop_recording)
         self._record_buttons.pushed_delete_bag.connect(self._backend.delete_bag)
 
-        self._backend.started_recording_signal.connect(self._record_buttons.started_recording)
-        self._backend.stopped_recording_signal.connect(self._record_buttons.stopped_recording)
-        self._backend.started_recording_signal.connect(self._topic_selection_tree.freeze_selections)
-        self._backend.stopped_recording_signal.connect(self._topic_selection_tree.unfreeze_selections)
+        self._backend.started_recording_signal.connect(
+            self._record_buttons.started_recording
+        )
+        self._backend.stopped_recording_signal.connect(
+            self._record_buttons.stopped_recording
+        )
+        self._backend.started_recording_signal.connect(
+            self._topic_selection_tree.freeze_selections
+        )
+        self._backend.stopped_recording_signal.connect(
+            self._topic_selection_tree.unfreeze_selections
+        )
 
-        self._backend.status_message_signal.connect(self._status_display.set_status_message)
+        self._backend.status_message_signal.connect(
+            self._status_display.set_status_message
+        )
 
-        self._backend.topics_stats_signal.connect(self._topic_selection_tree.set_topics_stats)
+        self._backend.topics_stats_signal.connect(
+            self._topic_selection_tree.set_topics_stats
+        )
 
-        self._bag_savedir_selection.selected_signal.connect(self._backend.set_bag_save_folder)
-        self._backend.set_bag_savedir_signal.connect(self._bag_savedir_selection.set_folder_path)
+        self._bag_savedir_selection.selected_signal.connect(
+            self._backend.set_bag_save_folder
+        )
+        self._backend.set_bag_savedir_signal.connect(
+            self._bag_savedir_selection.set_folder_path
+        )
 
         self._menu_bar.save_config_signal.connect(self._backend.save_config)
         self._menu_bar.load_config_signal.connect(self._backend.load_config)
-        self._backend.started_recording_signal.connect(self._menu_bar.disable_load_config)
-        self._backend.stopped_recording_signal.connect(self._menu_bar.enable_load_config)
+        self._backend.started_recording_signal.connect(
+            self._menu_bar.disable_load_config
+        )
+        self._backend.stopped_recording_signal.connect(
+            self._menu_bar.enable_load_config
+        )
 
         self._backend.stopped_recording_signal.connect(self._plot_bag.trigger_plotting)
         self._backend.started_recording_signal.connect(self._plot_bag.disable_checkbox)
@@ -105,7 +128,7 @@ class RecordBagGUI(QMainWindow):
         event.accept()
 
 
-if __name__ == '__main__':
+def main():
     rospy.init_node(
         'record_bag_gui',
         anonymous=True,
