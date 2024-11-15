@@ -23,21 +23,21 @@ FIGURE_WIDTH_INCHES = 12
 AX_HEIGHT_INCHES = 2
 
 
-class PlotBagWorker(QObject):
+class PlotTopicTimesWorker(QObject):
     started = pyqtSignal()
     finished = pyqtSignal(plt.Figure)
 
-    def __init__(self, bag_path):
+    def __init__(self, topic_times):
         super().__init__()
-        self._bag_path = bag_path
+        self._topic_times = topic_times
 
     def run(self):
         self.started.emit()
-        fig = plot_bag_freq(self._bag_path)
+        fig = plot_topic_times(self._topic_times)
         self.finished.emit(fig)
 
 
-class PlotBagtWidget(QWidget):
+class PlotTopicTimesWidget(QWidget):
     started_plotting = pyqtSignal()
     finished_plotting = pyqtSignal()
 
@@ -46,7 +46,7 @@ class PlotBagtWidget(QWidget):
 
         self._enabled = False
 
-        self._checkbox = QCheckBox('Plot bag timestamps and frequency after recording')
+        self._checkbox = QCheckBox('Plot message frequency after recording')
         self._display = QLabel()
 
         self._plot_widget = QWidget()
@@ -78,13 +78,13 @@ class PlotBagtWidget(QWidget):
     def enable_checkbox(self):
         self._checkbox.setEnabled(True)
 
-    def trigger_plotting(self, bag_path):
+    def trigger_plotting(self, topic_times):
         if not self._enabled:
             self._display.setText('')
             self._clear_plot()
             return
 
-        self._worker = PlotBagWorker(bag_path)
+        self._worker = PlotTopicTimesWorker(topic_times)
         self._thread = QThread()
         self._worker.moveToThread(self._thread)
 
@@ -98,13 +98,9 @@ class PlotBagtWidget(QWidget):
         self._worker.finished.connect(lambda: self.finished_plotting.emit())
 
         self._worker.started.connect(
-            lambda: self._display.setText(
-                f'Plotting bag at {bag_path}\nThis may take a while for large bags...'
-            )
+            lambda: self._display.setText(f'Plotting msg times...')
         )
-        self._worker.finished.connect(
-            lambda: self._display.setText(f'Finished plotting bag at {bag_path}')
-        )
+        self._worker.finished.connect(lambda: self._display.setText(f''))
 
         self._thread.start()
 
@@ -128,87 +124,32 @@ class PlotBagtWidget(QWidget):
         self._plot_widget.layout().addWidget(self.scroll)
 
 
-def plot_bag_freq(bag_path):
-    rospy.loginfo('Started reading bag for plotting')
-    if not os.path.exists(bag_path):
-        if os.path.exists(bag_path + '.active'):
-            rospy.logwarn(
-                f'Cannot plot bag file which is still being written to, waiting for it to finish'
-            )
-            tries = 0
-            while os.path.exists(bag_path + '.active'):
-                if tries > 10:
-                    raise FileNotFoundError(
-                        f'Cannot plot {bag_path} which is still being written to'
-                    )
-                rospy.sleep(1)
-                tries += 1
-        else:
-            raise FileNotFoundError(f'Bag file {bag_path} does not exist')
+def plot_topic_times(topic_times):
+    fig = plt.figure(figsize=(FIGURE_WIDTH_INCHES, AX_HEIGHT_INCHES * len(topic_times)))
 
-    bag = rosbag.Bag(
-        bag_path,
-        # doesn't really make a difference since we'll have to read index to get the timestamps anyways
-        skip_index=False,
-    )
-
-    # not skipping the index allows us to get the time start and end times easily
-    start_time = bag.get_start_time()
-    end_time = bag.get_end_time()
-
-    topics_stamps = {}
-    for topic, _, t in bag.read_messages(
-        raw=True  # reading non-deserialized messages is faster
-    ):
-        if topic not in topics_stamps:
-            topics_stamps[topic] = [t.to_sec() - start_time]
-        else:
-            topics_stamps[topic].append(t.to_sec() - start_time)
-
-    bag.close()
-    rospy.loginfo('Finished reading bag for plotting')
-
-    fig = plt.figure(
-        figsize=(FIGURE_WIDTH_INCHES, AX_HEIGHT_INCHES * len(topics_stamps))
-    )
-
-    num_topics = len(topics_stamps)
+    num_topics = len(topic_times)
     axs = []
     for i in range(num_topics):
         axs.append(fig.add_subplot(num_topics, 1, i + 1))
 
-    topics_stamps = dict(sorted(topics_stamps.items(), key=lambda x: x[0]))
-    for i, (topic, stamps) in enumerate(topics_stamps.items()):
+    topic_times = dict(sorted(topic_times.items(), key=lambda x: x[0]))
+    for i, (topic, times) in enumerate(topic_times.items()):
 
         axs[i].set_title(topic)
-        axs[i].set_xlim(0, end_time - start_time)
-        axs[i].set_ylabel('freq [Hz]')
+        axs[i].set_xlabel('Frequency [Hz]')
 
-        stamps = np.array(stamps)
-        if len(stamps) > 0:
+        times = np.array(times)
+
+        if len(times) > 0:
             try:
-                freqs = 1 / np.diff(stamps)
-                inf_idx = np.isinf(freqs)
-                axs[i].plot(stamps[-len(freqs) :][~inf_idx], freqs[~inf_idx], c='b')
-                axs[i].set_title(topic)
-                axs[i].set_xlim(0, end_time - start_time)
-                axs[i].set_ylim([0, 2 * np.mean(freqs[~inf_idx])])
+                diffs = np.diff(times)
+                freqs = 1 / diffs[diffs != 0.0]
+                axs[i].hist(freqs, bins=50)
 
             except Exception as e:
                 axs[i].set_ylim([0, 1])
-                rospy.logwarn(f'Could not plot frequency for {topic} in {bag_path}')
+                rospy.logwarn(f'Could not plot frequency for {topic}')
                 print(e)
-
-        axs[i].stem(
-            stamps,
-            np.ones_like(stamps) * axs[i].get_ylim()[1] * 0.1,
-            linefmt='r-',
-            markerfmt='rx',
-            use_line_collection=True,
-        )
-
-        if i == len(topics_stamps) - 1:
-            axs[i].set_xlabel('time [s]')
 
     plt.subplots_adjust(hspace=1.0)
     fig.tight_layout()
