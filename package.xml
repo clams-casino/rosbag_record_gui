@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>rosbag_record_gui</name>
+  <version>1.0.0</version>
+  <description>A GUI tool for working with rosbag record </description>
+  <license>MIT</license>
+
+  <maintainer email="mike.zhang.619@gmail.com">Mike Zhang</maintainer>
+  <author email="mike.zhang.619@gmail.com">Mike Zhang</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>roslib</exec_depend>
+  <exec_depend>rosgraph</exec_depend>
+</package>
