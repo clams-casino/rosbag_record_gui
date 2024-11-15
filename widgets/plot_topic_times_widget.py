@@ -46,7 +46,7 @@ class PlotTopicTimesWidget(QWidget):
 
         self._enabled = False
 
-        self._checkbox = QCheckBox('Plot bag timestamps and frequency after recording')
+        self._checkbox = QCheckBox('Plot message frequency after recording')
         self._display = QLabel()
 
         self._plot_widget = QWidget()
