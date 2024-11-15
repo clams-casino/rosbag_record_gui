@@ -1,10 +1,12 @@
+#!/usr/bin/env python3
+
 import sys
 import signal
 
 import rospy
 
-from backend import GUIBackend
-from widgets import (
+from rosbag_record_gui.backend import GUIBackend
+from rosbag_record_gui.widgets import (
     TopicSelectionTreeWidget,
     RecordButtonsWidget,
     StatusDisplayWidget,

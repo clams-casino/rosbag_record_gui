@@ -1,8 +1,6 @@
-import os
 import numpy as np
 
 import rospy
-import rosbag
 
 import matplotlib
 
